@@ -1,0 +1,9 @@
+build/*
+
+.cache/*
+
+.vscode/*
+
+*.o
+
+*.kate-swp
