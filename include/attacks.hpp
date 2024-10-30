@@ -10,4 +10,5 @@ std::string changeRandomLetter(std::string message);
 int firstPreimageAttack(std::string message, bool verbose = true);
 int secondPreimageAttack(std::string message, bool verbose = true);
 
-int birthdayAttack(std::string message);
+int firstBirthdayAttack(std::string message, bool verbose = true);
+int secondBirthdayAttack(std::string message, bool verbose = true);

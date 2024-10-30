@@ -1,15 +1,27 @@
 #include "attacks.hpp"
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
 #include <iterator>
+#include <map>
 #include <openssl/evp.h>
 #include <string>
 
 std::string addNumberToEnd(std::string message, int number)
 {
     return message + std::to_string(number);
+}
+
+bool compareHashes(unsigned char* first_hash, unsigned char* second_hash, int number_of_bytes)
+{
+    for (int i = 1; i <= number_of_bytes; i++) {
+        if (first_hash[28 - i] != second_hash[28 - i]) {
+            return false;
+        }
+    }
+    return true;
 }
 
 std::string changeRandomLetter(std::string message)
@@ -20,6 +32,9 @@ std::string changeRandomLetter(std::string message)
     int letter = rand() % (END_OF_ALPHABET - START_OF_ALPHABET) + START_OF_ALPHABET;
 
     std::string new_message = message;
+    while (new_message.at(position) == (char)letter) {
+        letter = rand() % (END_OF_ALPHABET - START_OF_ALPHABET) + START_OF_ALPHABET;
+    }
     new_message[position] = (char)letter;
     return new_message;
 }
@@ -60,14 +75,7 @@ int firstPreimageAttack(std::string message, bool verbose)
         EVP_DigestUpdate(mdctx, new_message.data(), new_message.length());
         EVP_DigestFinal(mdctx, new_hash, 0);
 
-        for (int i = 1; i <= 2; i++) {
-            if (original_hash[28 - i] != new_hash[28 - i]) {
-                break;
-            }
-            if (i == 2) {
-                is_found = true;
-            }
-        }
+        is_found = compareHashes(original_hash, new_hash, 2);
         if (iteration < 30 && verbose) {
             printMessageWithHash(new_message, new_hash, 2, message.length());
         }
@@ -105,14 +113,7 @@ int secondPreimageAttack(std::string message, bool verbose)
         EVP_DigestUpdate(mdctx, new_message.data(), new_message.length());
         EVP_DigestFinal(mdctx, new_hash, 0);
 
-        for (int i = 1; i <= 2; i++) {
-            if (original_hash[28 - i] != new_hash[28 - i]) {
-                break;
-            }
-            if (i == 2) {
-                is_found = true;
-            }
-        }
+        is_found = compareHashes(original_hash, new_hash, 2);
         if (iteration < 30 && verbose) {
             printMessageWithHash(new_message, new_hash, 2, message.length());
         }
@@ -122,6 +123,104 @@ int secondPreimageAttack(std::string message, bool verbose)
         printMessageWithHash(new_message, new_hash, 2, message.length());
         std::cout << "\n\033[36moriginal message: \033[0m\n";
         printMessageWithHash(message, original_hash, 2, message.length());
+    }
+    return iteration;
+}
+
+int firstBirthdayAttack(std::string message, bool verbose)
+{
+    std::map<uint32_t, std::string> sigma;
+    unsigned char hash[28] {};
+
+    EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
+    const EVP_MD* md = EVP_sha224();
+    EVP_DigestInit(mdctx, md);
+    EVP_DigestUpdate(mdctx, message.data(), message.length());
+    EVP_DigestFinal(mdctx, hash, 0);
+
+    uint32_t short_hash = (uint32_t)hash[0] + ((uint32_t)hash[1] << 8) + ((uint32_t)hash[2] << 16) + ((uint32_t)hash[3] << 24);
+    sigma.insert({ short_hash, message });
+    std::string new_message = "";
+    bool is_found = false;
+    int iteration = 0;
+
+    unsigned char new_hash[28] {};
+    while (!is_found) {
+        iteration++;
+        new_message = addNumberToEnd(message, iteration);
+
+        EVP_DigestInit(mdctx, md);
+        EVP_DigestUpdate(mdctx, new_message.data(), new_message.length());
+        EVP_DigestFinal(mdctx, new_hash, 0);
+
+        short_hash = (uint32_t)new_hash[27] + ((uint32_t)new_hash[26] << 8) + ((uint32_t)new_hash[25] << 16) + ((uint32_t)new_hash[24] << 24);
+        if (iteration < 30 && verbose) {
+            printMessageWithHash(new_message, new_hash, 4, message.length());
+        }
+        if (sigma.count(short_hash)) {
+            is_found = true;
+
+            EVP_DigestInit(mdctx, md);
+            EVP_DigestUpdate(mdctx, sigma.at(short_hash).data(), sigma.at(short_hash).length());
+            EVP_DigestFinal(mdctx, hash, 0);
+
+            break;
+        }
+        sigma.insert({ short_hash, new_message });
+    }
+    if (verbose) {
+        std::cout << "\n\033[36mfounded collision: \033[0m\n";
+        printMessageWithHash(new_message, new_hash, 4, message.length());
+        printMessageWithHash(sigma.at(short_hash), hash, 4, message.length());
+    }
+    return iteration;
+}
+
+int secondBirthdayAttack(std::string message, bool verbose)
+{
+    std::map<uint32_t, std::string> sigma;
+    unsigned char hash[28] {};
+
+    EVP_MD_CTX* mdctx = EVP_MD_CTX_create();
+    const EVP_MD* md = EVP_sha224();
+    EVP_DigestInit(mdctx, md);
+    EVP_DigestUpdate(mdctx, message.data(), message.length());
+    EVP_DigestFinal(mdctx, hash, 0);
+
+    uint32_t short_hash = (uint32_t)hash[0] + ((uint32_t)hash[1] << 8) + ((uint32_t)hash[2] << 16) + ((uint32_t)hash[3] << 24);
+    sigma.insert({ short_hash, message });
+    std::string new_message = message;
+    bool is_found = false;
+    int iteration = 0;
+
+    unsigned char new_hash[28] {};
+    while (!is_found) {
+        iteration++;
+        new_message = changeRandomLetter(new_message);
+
+        EVP_DigestInit(mdctx, md);
+        EVP_DigestUpdate(mdctx, new_message.data(), new_message.length());
+        EVP_DigestFinal(mdctx, new_hash, 0);
+
+        short_hash = (uint32_t)new_hash[27] + ((uint32_t)new_hash[26] << 8) + ((uint32_t)new_hash[25] << 16) + ((uint32_t)new_hash[24] << 24);
+        if (iteration < 30 && verbose) {
+            printMessageWithHash(new_message, new_hash, 4, message.length());
+        }
+        if (sigma.count(short_hash) && sigma.at(short_hash) != new_message) {
+            is_found = true;
+
+            EVP_DigestInit(mdctx, md);
+            EVP_DigestUpdate(mdctx, sigma.at(short_hash).data(), sigma.at(short_hash).length());
+            EVP_DigestFinal(mdctx, hash, 0);
+
+            break;
+        }
+        sigma.insert({ short_hash, new_message });
+    }
+    if (verbose) {
+        std::cout << "\n\033[36mfounded collision: \033[0m\n";
+        printMessageWithHash(new_message, new_hash, 4, message.length());
+        printMessageWithHash(sigma.at(short_hash), hash, 4, message.length());
     }
     return iteration;
 }

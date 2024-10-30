@@ -32,6 +32,16 @@ std::string generateRandomMessage(int min, int max)
 
 int main(int argc, char** argv)
 {
-    firstPreimageAttack(generateRandomMessage(2, 5));
-    secondPreimageAttack(generateRandomMessage(2, 5));
+    int iterations = 0;
+    iterations = firstPreimageAttack(generateRandomMessage(2, 5));
+    std::cout << std::dec << "\nfirst preimage attack, iterations = " << iterations << "\n\n";
+
+    iterations = secondPreimageAttack(generateRandomMessage(2, 5));
+    std::cout << std::dec << "\nsecond preimage attack, iterations = " << iterations << "\n\n";
+
+    iterations = firstBirthdayAttack(generateRandomMessage(2, 5));
+    std::cout << std::dec << "\nfirst birthday attack, iterations = " << iterations << "\n\n";
+
+    iterations = secondBirthdayAttack(generateRandomMessage(2, 5));
+    std::cout << std::dec << "\nsecond birthday attack, iterations = " << iterations << "\n\n";
 }
