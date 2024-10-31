@@ -4,7 +4,6 @@
 #include <cstdlib>
 #include <iomanip>
 #include <iostream>
-#include <iterator>
 #include <map>
 #include <openssl/evp.h>
 #include <string>
@@ -85,8 +84,8 @@ int firstPreimageAttack(std::string message, bool verbose)
         printMessageWithHash(new_message, new_hash, 2, message.length());
         std::cout << "\n\033[36moriginal message: \033[0m\n";
         printMessageWithHash(message, original_hash, 2, message.length());
+        std::cout << "\n";
     }
-    std::cout << "\n";
     return iteration;
 }
 
