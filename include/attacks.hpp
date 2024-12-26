@@ -4,8 +4,8 @@
 const char START_OF_ALPHABET = 33;
 const char END_OF_ALPHABET = 126;
 
-const int N = 16;
-const int N_BYTES = N / 8;
+const int N = 32;
+constexpr int N_BYTES = N / 8;
 
 std::string addNumberToEnd(std::string message, int number);
 std::string changeRandomLetter(std::string message);
@@ -31,4 +31,5 @@ unsigned int calculateTag(unsigned char* x);
 void printArray(const unsigned char* x, int size);
 TableRecord* computeTable(int k, int l, const unsigned char* r);
 
-unsigned char* HellmanAttack(int k, int l, const unsigned char* h, TableRecord* records, const unsigned char* r);
+unsigned char* HellmanAttack(int k, int l, const unsigned char* h, const TableRecord* records, const unsigned char* r);
+unsigned char* HellmanAttackMultipleTables(int k, int l, const unsigned char* h, TableRecord** tables, unsigned char** r);
